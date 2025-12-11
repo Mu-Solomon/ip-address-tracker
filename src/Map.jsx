@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -10,49 +10,48 @@ const DefaultIcon = L.icon({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
   shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-export default function MapView() {
-  const [info, setInfo] = useState(null);
+export default function MapView({ data }) {
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
-    // Create map only once
-    if (L.DomUtil.get("map") !== null) {
-      L.DomUtil.get("map")._leaflet_id = null;
+    if (!mapRef.current) {
+      // Create map once
+      mapRef.current = L.map("map", { zoomControl: true }).setView([0, 0], 2);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(mapRef.current);
     }
 
-    const map = L.map("map", {
-      zoomControl: true,
-    }).setView([0, 0], 2); // Start zoomed out before location loads
-
-    // Tile layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
-
-    async function loadLocation() {
-      const res = await fetch("https://ipwho.is/");
-      const data = await res.json();
-      setInfo(data);
-
+    if (data) {
       const lat = data.latitude;
       const lng = data.longitude;
+      const OFFSET_LAT = lat + 0.0025;
 
-      // Move map to user location
-      map.setView([lat, lng], 13);
+      // Move map
+      mapRef.current.setView([OFFSET_LAT, lng], 17);
 
-      // Add marker
-      L.marker([lat, lng]).addTo(map).bindPopup(`
-        <b>${data.city}, ${data.country}</b><br/>
-        ISP: ${data.org}<br/>
-        IP: ${data.ip}
-      `);
+      // Remove previous marker if exists
+      if (markerRef.current) {
+        markerRef.current.remove();
+      }
+
+      // Add new marker
+      markerRef.current = L.marker([lat, lng])
+        .addTo(mapRef.current)
+        .bindPopup(
+          `<b>${data.city}, ${data.country}</b><br/>ISP: ${data.connection.isp}<br/>IP: ${data.ip}`
+        )
+        .openPopup();
     }
-
-    loadLocation();
-  }, []);
+  }, [data]); // re-run when data changes
 
   return <div id="map" className="w-full h-full"></div>;
 }

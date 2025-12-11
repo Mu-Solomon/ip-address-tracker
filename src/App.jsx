@@ -4,22 +4,41 @@ import { useEffect, useState } from "react";
 
 function App() {
   const [data, setData] = useState(null);
+  const [ip, setIp] = useState("https://ipwho.is/");
 
   useEffect(() => {
     async function Data() {
+      const cachedData = localStorage.getItem("ipData");
+      if (cachedData) {
+        setData(JSON.parse(cachedData));
+        console.log("Data got locally");
+        return;
+      }
+
       const response = await fetch("https://ipwho.is/");
       const data = await response.json();
       setData(data);
-
-      console.log(data);
-      return data;
+      console.log("Data fetched online");
+      localStorage.setItem("geoData", JSON.stringify(data));
     }
 
     Data();
-  }, [data]);
+  }, []);
 
-  console.log(data);
+  async function handleIP() {
+    const ipAddress = ip;
+    const customIP = await fetch(`https://ipwho.is/${ipAddress}`);
+    const data = await customIP.json();
+    console.log(data);
+    setData(data);
+  }
+
+  function handleInput(event) {
+    setIp(event.target.value);
+  }
+
   if (!data) return <p className="text-center text-2xl my-96">Loading...</p>;
+
   return (
     <>
       <div className="bg-[url('/images/pattern-bg-mobile.png')] h-10/12  sm:bg-[url('/images/pattern-bg-desktop.png')] bg-contain bg-no-repeat ">
@@ -28,6 +47,7 @@ function App() {
         </h2>
         <div className="flex items-center justify-center md:w-1/2 mx-auto">
           <input
+            onChange={handleInput}
             className="bg-white hover:cursor-pointer p-4 rounded-l-xl w-9/12 outline-none"
             type="text"
             placeholder="Search for any IP address or domain"
@@ -37,8 +57,9 @@ function App() {
             xmlns="http://www.w3.org/2000/svg"
             width="11"
             height="14"
+            onClick={handleIP}
           >
-            <path fill="none" stroke="#FFF" stroke-width="3" d="M2 1l6 6-6 6" />
+            <path fill="none" stroke="#FFF" strokeWidth="3" d="M2 1l6 6-6 6" />
           </svg>
         </div>
         <div className="bg-white  shadow-xl  max-w-[90%] mx-auto mt-5 py-5 md:py-2.5 rounded-xl text-center flex flex-col md:flex-row md:flex-wrap md:gap-14 md:justify-start md:text-left md:mt-12 md:w-[70%] md:pl-12">
@@ -77,7 +98,7 @@ function App() {
         </div>
         <div className="w-full h-full absolute inset-0 -z-10">
           {/*   <div id="map" className="w-full h-full"></div> */}
-          <MapView />
+          <MapView data={data} />
         </div>
       </div>
     </>
