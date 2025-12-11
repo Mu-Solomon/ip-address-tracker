@@ -13,14 +13,12 @@ function App() {
       const cachedData = localStorage.getItem("ipData");
       if (cachedData) {
         setData(JSON.parse(cachedData));
-        console.log("Data got locally");
         return;
       }
 
       const response = await fetch("https://ipwho.is/");
       const data = await response.json();
       setData(data);
-      console.log("Data fetched online");
       localStorage.setItem("geoData", JSON.stringify(data));
     }
 
@@ -32,14 +30,50 @@ function App() {
       setErrorIP(true);
       return;
     }
-    if (ip.length < 7) {
-      setErrorIP(true);
-      return;
-    }
 
     const ipAddress = ip;
     const customIP = await fetch(`https://ipwho.is/${ipAddress}`);
     const data = await customIP.json();
+
+    const integerArray = Number(
+      ip
+        .split(".")
+        .map((item) => String(item))
+        .join("")
+    );
+
+    // To convert to an array of Floats
+
+    if (!isNaN(integerArray)) {
+      //Check if input is an IP address
+
+      setData(data);
+
+      console.log("This is an IP address");
+    } else {
+      //Else it's a domain name
+      console.log("This is a domain name");
+
+      //Converting to get  IP from domain name
+      async function getDomainIP() {
+        const res = await fetch(`https://dns.google/resolve?name=${ip}&type=A`);
+        const json = await res.json();
+        return json.Answer ? json.Answer[0].data : null;
+      }
+      async function lookupDomain() {
+        const ipNew = await getDomainIP();
+        if (!ipNew) return null;
+
+        const geo = await fetch(`https://ipwho.is/${ipNew}`);
+        const data = await geo.json();
+        setData(data);
+        return;
+      }
+
+      lookupDomain();
+      return;
+    }
+
     if (!data.success) {
       setErrorIP(true);
       return;
@@ -56,7 +90,7 @@ function App() {
 
   return (
     <>
-      <div className="bg-[url('/images/pattern-bg-mobile.png')] h-10/12  sm:bg-[url('/images/pattern-bg-desktop.png')] bg-contain bg-no-repeat ">
+      <div className="bg-[url('/images/pattern-bg-mobile.png')] h-10/12  sm:bg-[url('/images/pattern-bg-desktop.png')] bg-contain bg-no-repeat bg-auto bg-auto bg-[length:auto_300px] ">
         <h2 className="text-white text-center text-2xl py-5">
           IP Address Tracker
         </h2>
