@@ -1,10 +1,12 @@
 import "./App.css";
+import Loader from "./Loader.jsx";
 import MapView from "./Map.jsx";
 import { useEffect, useState } from "react";
 
 function App() {
   const [data, setData] = useState(null);
   const [ip, setIp] = useState("https://ipwho.is/");
+  const [errorIP, setErrorIP] = useState(false);
 
   useEffect(() => {
     async function Data() {
@@ -26,18 +28,31 @@ function App() {
   }, []);
 
   async function handleIP() {
+    if (ip === "") {
+      setErrorIP(true);
+      return;
+    }
+    if (ip.length < 7) {
+      setErrorIP(true);
+      return;
+    }
+
     const ipAddress = ip;
     const customIP = await fetch(`https://ipwho.is/${ipAddress}`);
     const data = await customIP.json();
-    console.log(data);
+    if (!data.success) {
+      setErrorIP(true);
+      return;
+    }
     setData(data);
   }
 
   function handleInput(event) {
     setIp(event.target.value);
+    setErrorIP(false);
   }
 
-  if (!data) return <p className="text-center text-2xl my-96">Loading...</p>;
+  if (!data) return <Loader />;
 
   return (
     <>
@@ -48,6 +63,11 @@ function App() {
         <div className="flex items-center justify-center md:w-1/2 mx-auto">
           <input
             onChange={handleInput}
+            onKeyDown={(e) => {
+              if (e.key == "Enter") {
+                handleIP();
+              }
+            }}
             className="bg-white hover:cursor-pointer p-4 rounded-l-xl w-9/12 outline-none"
             type="text"
             placeholder="Search for any IP address or domain"
@@ -63,6 +83,7 @@ function App() {
           </svg>
         </div>
         <div className="bg-white  shadow-xl  max-w-[90%] mx-auto mt-5 py-5 md:py-2.5 rounded-xl text-center flex flex-col md:flex-row md:flex-wrap md:gap-14 md:justify-start md:text-left md:mt-12 md:w-[70%] md:pl-12">
+          {errorIP ? <p className="text-rose-700">Invalid IP address</p> : null}
           <div className="md:my-5 md:pr-5 md:border-r-[0.5px] md:border-[#94949441] ">
             {" "}
             <h2 className="text-xs text-[#949494ff] font-bold tracking-widest md:my-3">
